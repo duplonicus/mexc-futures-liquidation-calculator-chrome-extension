@@ -1,11 +1,12 @@
 const waitForPage = setTimeout(() => {
   console.log('############ Testing ############');
   // Get the orderbox node
-  orderBoxElement = document.querySelector('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span');
+  orderBoxElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   // Get the last price node
-  priceElement = document.querySelector("div[class^='bar'] > div[class^='lastPrice']");
+  priceElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderbook"]/div[2]/div[2]/div[2]/span/div/h3/span[1]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   // Return if either of them are not found
   if (!orderBoxElement || !priceElement) {
+    console.log('Extension failed to load!')
     return;
   }
 
@@ -21,6 +22,7 @@ const waitForPage = setTimeout(() => {
 
   // Append the new element to the body of the page
   document.body.appendChild(liqPrices);
+  console.log("liqPrices element created ##############")
 
   // Style it to look like the Kucoin dark theme
   liqPrices.style.color = "#fafafa";
@@ -33,20 +35,21 @@ const waitForPage = setTimeout(() => {
   // Run once to get the initial values
   getLiq();
 
-}, 6000);
+}, 15000);
 
 let i = 1;
 
 function getLiq() {
 
   // Get the value of the leverage slider
-  let sliderVal = parseInt(document.querySelector("div[class^='rc-slider'] > div[class^='rc-slider-handle']").getAttribute("aria-valuenow"));
+  let sliderVal = parseInt(document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent, 10);
 
   // Get the value of the last price
-  let lastPrice = priceElement.textContent;
+  let lastPrice = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderbook"]/div[2]/div[2]/div[2]/span/div/h3/span[1]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.trim();
+
 
   // Get the number of digits after the decimal
-  let digits = lastPrice.includes(".") ? lastPrice.split(".")[1].length : 0;
+  let digits = lastPrice.toString().split(".")[1].length;
   lastPrice = parseFloat(lastPrice);
 
   // Calculate the liquidation prices
@@ -66,6 +69,7 @@ function getLiq() {
   console.log('Liquidation Distance: ', liqPriceDist);
   console.log('Long Liquidation: ', longLiqPrice);
   console.log('Short Liquidation: ', shortLiqPrice);
+  console.log('Digits: ', digits);
   console.log(orderBoxElement, priceElement);
 
   i += 1;
