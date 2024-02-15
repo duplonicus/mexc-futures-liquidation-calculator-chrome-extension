@@ -23,7 +23,11 @@ var options = {
   entry: {
     popup: path.join(__dirname, "src", "js", "popup.js"),
     options: path.join(__dirname, "src", "js", "options.js"),
-    background: path.join(__dirname, "src", "js", "background.js")
+    background: path.join(__dirname, "src", "js", "background.js"),
+    mexc_liq_calc: path.join(__dirname, "src", "js", "mexc_liq_calc.js"),
+  },
+  chromeExtensionBoilerplate: {
+  notHotReload: ["mexc_liq_calc"]
   },
   output: {
     path: path.join(__dirname, "build"),

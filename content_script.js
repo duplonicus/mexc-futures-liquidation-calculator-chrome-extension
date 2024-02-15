@@ -21,7 +21,7 @@ liqPrices.id = "liqPrices";
 liqPrices.style.position = "fixed";
 liqPrices.style.bottom = "0";
 liqPrices.style.right = "0";
-liqPrices.style.backgroundColor = "#101314";
+liqPrices.style.backgroundColor = "#111214";
 liqPrices.style.color = "#fafafa";
 liqPrices.style.padding = "15px";
 liqPrices.style.fontSize = "14px";
@@ -39,7 +39,7 @@ const waitForPage = setTimeout(() => {
   // Call newTicker to start the observer
   newTicker();
 
-}, 10000);
+}, 8000); // Wait for 8 seconds
 
 // Runs at start and if the ticker changes
 function newTicker() {
@@ -58,6 +58,7 @@ function newTicker() {
   // Dispatch the event to the element
   tickSizeParent.dispatchEvent(hoverEvent); // This will trigger the dropdown to load the tick size
 
+  wait_for_ms(5000); // Wait for 1 second
 
   // Get the tick size from the dropdown
   try {
@@ -108,7 +109,7 @@ function getLiq() {
   if (newPriceElement != priceElement) {
     priceElement = newPriceElement;
     console.log('Ticker changed');
-    setTimeout(() => newTicker(), 3000);
+    setTimeout(() => newTicker(), 1000);
     return; 
   }
 
@@ -122,7 +123,14 @@ function getLiq() {
   lastPrice = parseFloat(lastPrice);
 
   // Get the number of digits after the decimal
-  let digits = lastPrice.toString().split(".")[1].length;
+  try {
+    var decimal_places = lastPrice.toString().split(".")[1].length;
+  }
+  catch (error) {
+    console.log('Error getting decimal places: ', error);
+  }
+
+  //let decimal_places = lastPrice.toString().split(".")[1].length;
 
   // Values needed for the calculation
   const maintenance_margin_rate = 0.004;  // Hardcoded value, TODO: Get tiers
@@ -148,7 +156,7 @@ function getLiq() {
   let liqPcnt = (difference / lastPrice) * 100; // Convert to a percentage
 
   // Add the liquidation prices to the new div and round them to the correct number of digits
-  liqPrices.innerHTML = `${liqPcnt.toFixed(2)}% | <span style="color: #34cc94">Long</span> Liq: ${long_liquidation_price.toFixed(digits)} | <span style="color: #da5c56">Short</span> Liq: ${short_liquidation_price.toFixed(digits)}`;
+  liqPrices.innerHTML = `${liqPcnt.toFixed(2)}% | <span style="color: #34cc94">Long</span> Liq: ${long_liquidation_price.toFixed(decimal_places)} | <span style="color: #da5c56">Short</span> Liq: ${short_liquidation_price.toFixed(decimal_places)}`;
 
   // Debug
   console.log('############ Testing ############', i);
@@ -157,9 +165,16 @@ function getLiq() {
   console.log('Liquidation %: ', parseFloat(liqPcnt.toFixed(2)));
   console.log('Long Liquidation: ', long_liquidation_price);
   console.log('Short Liquidation: ', short_liquidation_price);
-  console.log('Digits: ', digits);
+  console.log('Digits: ', decimal_places);
 
   i += 1;
 
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function wait_for_ms(ms) {
+  await sleep(ms);
+}
