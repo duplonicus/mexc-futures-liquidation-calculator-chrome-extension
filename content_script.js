@@ -28,11 +28,11 @@ liqPrices.style.fontSize = "14px";
 liqPrices.textContent = 'Loading liquidation prices...'; // Add static content
 
 // Wait for the page to load
-console.log('waiting for page to load...');
+console.log('Waiting for page to load...');
 
 const waitForPage = setTimeout(() => {
 
-  // Get the parent element to append the new div to
+  // Get the parent element to append the new div to, it appears at the bottom of the order form
   let parentElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   parentElement.appendChild(liqPrices);
 
@@ -58,8 +58,15 @@ function newTicker() {
   // Dispatch the event to the element
   tickSizeParent.dispatchEvent(hoverEvent); // This will trigger the dropdown to load the tick size
 
+
   // Get the tick size from the dropdown
-  tickSize = parseFloat(document.querySelector("ul > li > .ant-dropdown-menu-title-content").textContent.trim());
+  try {
+    tickSize = parseFloat(document.querySelector("ul > li > .ant-dropdown-menu-title-content").textContent.trim());
+  } catch (error) {
+    console.log('Error getting tick size: ', error);
+    setTimeout(() => newTicker(), 3000);
+    return;
+  }
 
   // Get the leverage node
   leverageElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
@@ -88,6 +95,9 @@ function newTicker() {
 
   // Get the tick size
   console.log('Tick Size: ', tickSize);
+
+  // Hover on some other element to close the dropdown
+  leverageElement.dispatchEvent(hoverEvent);
 }
 
 // Liquidation price calculation
@@ -144,7 +154,7 @@ function getLiq() {
   console.log('############ Testing ############', i);
   console.log('Leverage: ', sliderVal);
   console.log('Last Price: ', lastPrice);
-  console.log('Liquidation %: ', liqPcnt.toFixed(2));
+  console.log('Liquidation %: ', parseFloat(liqPcnt.toFixed(2)));
   console.log('Long Liquidation: ', long_liquidation_price);
   console.log('Short Liquidation: ', short_liquidation_price);
   console.log('Digits: ', digits);
