@@ -40,7 +40,7 @@ const waitForPage = setTimeout(() => {
   // Call newTicker to start the observer
   newTicker();
 
-}, 8000); // Wait for 8 seconds
+}, 8000); // Wait for 8 seconds before running this code
 
 // Runs at start and if the ticker changes
 function newTicker() {
@@ -78,18 +78,17 @@ function newTicker() {
   // Return if either of them are not found
   if (!leverageElement || !priceElement || !tickSize) {
     console.log('Price, leverage, or tick size elements not found! Retrying...');
-    // Try again in 3 seconds
-    setTimeout(() => newTicker(), 3000);
     // Increment the fail count
     failCount += 1;
     console.log('Fail: ', failCount);
-    // If we fail 5 times, stop trying
-    if (failCount > 5) {
-      console.log('Failed to find elements 5 times! Stopping...');
-      observer.disconnect();
-      return;
+    // Try again in 3 seconds
+    console.log('beig wait')
+    wait_for_ms(3000);
+    console.log('end wait')
+    newTicker();
+    return;
     }
-  }
+  
   // Attach or re-attach the observer
   observer.disconnect();
   observer.observe(leverageElement, { characterData: true, attributes: true, childList: true, subtree: true });
@@ -101,7 +100,7 @@ function newTicker() {
 
   // Hover on some other element to close the dropdown
   leverageElement.dispatchEvent(hoverEvent);
-}
+  }
 
 // Liquidation price calculation
 function getLiq() {
@@ -167,7 +166,7 @@ function getLiq() {
   console.log('Liquidation %: ', parseFloat(liqPcnt.toFixed(2)));
   console.log('Long Liquidation: ', long_liquidation_price);
   console.log('Short Liquidation: ', short_liquidation_price);
-  console.log('Digits: ', decimal_places);
+  console.log('decimal_places: ', decimal_places);
 
   i += 1;
 

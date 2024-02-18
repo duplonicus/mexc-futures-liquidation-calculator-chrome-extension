@@ -1,7 +1,7 @@
 {
   "name": "MEXC Futures Liquidation Calculator",
   "version": "1",
-  "description": "Automatically displays the estimated long and short liquidation prices at the bottom of the trading panel based on the leverage and the last price.",
+  "description": "Automatically displays the estimated long and short liquidation prices at the bottom of the trading panel based on the leverage and last price.",
   "options_page": "options.html",
   "content_scripts": [
     {
