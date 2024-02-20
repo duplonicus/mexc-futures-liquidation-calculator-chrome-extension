@@ -21,10 +21,10 @@ liqPrices = document.createElement("div");
 liqPrices.id = "liqPrices";
 liqPrices.style.position = "fixed";
 liqPrices.style.bottom = "0";
-liqPrices.style.right = "0";
+liqPrices.style.left = "0";
 liqPrices.style.backgroundColor = "#111214";
 liqPrices.style.color = "#fafafa";
-liqPrices.style.padding = "15px";
+liqPrices.style.padding = "10px";
 liqPrices.style.fontSize = "14px";
 liqPrices.textContent = 'Loading liquidation prices...'; // Add static content
 
@@ -34,19 +34,23 @@ console.log('Waiting for page to load...');
 const waitForPage = setTimeout(() => {
 
   // Get the parent element to append the new div to, it appears at the bottom of the order form
-  let parentElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  //let parentElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  const parentElement = document.querySelector('#mexc-web-inspection-futures-exchange-orderForm > div.handle_handleWrapper__TQ__L > div.ant-row.ant-row-middle.handle_vouchers__ZQ55K');
+
   parentElement.appendChild(liqPrices);
+  console.log('div appended')
 
   // Call newTicker to start the observer
   newTicker();
+  console.log('Calling newTicker...')
 
-}, 8000); // Wait for 8 seconds before running this code
+}, 5000); // Wait for 5 seconds before running this code
 
 // Runs at start and if the ticker changes
 function newTicker() {
 
   // Hover over the orderbook dropdown to load the tick size
-  // Using the CSS selector to get the tick size parent node
+  // CSS selector to get the tick size parent node
   const tickSizeParent = document.querySelector('#mexc-web-inspection-futures-exchange-orderbook > div.market_moduleHeader__QgYk8 > div > div.market_rightActions__T5xwF > span');
 
   // Create a mouseover event
@@ -60,11 +64,16 @@ function newTicker() {
   tickSizeParent.dispatchEvent(hoverEvent); // This will trigger the dropdown to load the tick size
 
   // Attempt to fix the exception below
-  wait_for_ms(5000); // Wait for 1 second
-
+  wait(2000);
+  
   // Get the tick size from the dropdown
   try {
-    tickSize = parseFloat(document.querySelector("ul > li > .ant-dropdown-menu-title-content").textContent.trim());
+    if (tickSizeParent != null) {
+      tickSize = parseFloat(document.querySelector("ul > li > .ant-dropdown-menu-title-content").textContent.trim());
+    } else {
+      setTimeout(() => newTicker(), 3000);
+      return;
+    }
   } catch (error) {
     console.log('Error getting tick size: ', error);
     setTimeout(() => newTicker(), 3000);
@@ -82,9 +91,7 @@ function newTicker() {
     failCount += 1;
     console.log('Fail: ', failCount);
     // Try again in 3 seconds
-    console.log('beig wait')
-    wait_for_ms(3000);
-    console.log('end wait')
+    wait(3000);
     newTicker();
     return;
     }
@@ -109,6 +116,7 @@ function getLiq() {
   let newPriceElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderbook"]/div[2]/div[2]/div[2]/span/div/h3/span[1]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   if (newPriceElement != priceElement) {
     priceElement = newPriceElement;
+    liqPrices.innerHTML = 'Changing ticker...';
     console.log('Ticker changed');
     setTimeout(() => newTicker(), 1000);
     return; 
@@ -177,7 +185,6 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// This is the only way it will work because setTimeout is not a promise 
-async function wait_for_ms(ms) {
-  await sleep(ms);
+async function wait(ms) {
+  await sleep(ms); // Sleep for 2 seconds
 }
