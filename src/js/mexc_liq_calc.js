@@ -1,17 +1,16 @@
 /* 
-    Mexc Liquidation Price Estimator
-    - TODO: Support cross collateral, current support is isolated
-    - TODO: Support dynamic risk limit tiers, current support is tier 1
-    - TODO: Add dynamic amount of contracts
-    - Calculation: https://www.mexc.com/support/articles/360044646391
- */
+  Mexc Liquidation Price Estimator
+
+  - TODO: Check leverage slider before the button - observer not working
+  - TODO: Support cross collateral, current support is isolated
+  - TODO: Support dynamic risk limit tiers, current support is tier 1
+  - TODO: Add dynamic amount of contracts - only matters if using risk limit tiers
+  
+  - Calculation: https://www.mexc.com/support/articles/360044646391
+*/
 
 let failCount = 0;      // In case it doesn't work or the site doesn't load
-let priceElement;       // The last price element
-let leverageElement;    // The leverage element
 let i = 0;              // Debug counter
-let liqPrices;          // The div that will hold the liquidation info
-let tickSize;           // The tick size
 
 // Create observer object
 let observer = new MutationObserver(getLiq);
@@ -34,22 +33,22 @@ console.log('Waiting for page to load...');
 const waitForPage = setTimeout(() => {
 
   // Get the parent element to append the new div to, it appears at the bottom of the order form
-  //let parentElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-  const parentElement = document.querySelector('#mexc-web-inspection-futures-exchange-orderForm > div.handle_handleWrapper__TQ__L > div.ant-row.ant-row-middle.handle_vouchers__ZQ55K');
-
-  parentElement.appendChild(liqPrices);
-  console.log('div appended')
+  const orderFormElement = document.querySelector('#mexc-web-inspection-futures-exchange-orderForm > div.handle_handleWrapper__TQ__L > div.ant-row.ant-row-middle.handle_vouchers__ZQ55K');
+  orderFormElement.appendChild(liqPrices);
+  console.log('Liq prices div appended to order form')
 
   // Call newTicker to start the observer
   newTicker();
-  console.log('Calling newTicker...')
+  console.log('First call of newTicker...')
 
-}, 5000); // Wait for 5 seconds before running this code
+}, 8000); // Wait for 5 seconds before running this code
 
 // Runs at start and if the ticker changes
 function newTicker() {
+  console.log('New Ticker function called');
 
   // Hover over the orderbook dropdown to load the tick size
+
   // CSS selector to get the tick size parent node
   const tickSizeParent = document.querySelector('#mexc-web-inspection-futures-exchange-orderbook > div.market_moduleHeader__QgYk8 > div > div.market_rightActions__T5xwF > span');
 
@@ -66,7 +65,7 @@ function newTicker() {
   // Attempt to fix the exception below
   wait(2000);
   
-  // Get the tick size from the dropdown
+  // Get the tick size from the dropdown - not sure why this is throwing an exception
   try {
     if (tickSizeParent != null) {
       tickSize = parseFloat(document.querySelector("ul > li > .ant-dropdown-menu-title-content").textContent.trim());
@@ -75,17 +74,20 @@ function newTicker() {
       return;
     }
   } catch (error) {
+    // Try again
     console.log('Error getting tick size: ', error);
     setTimeout(() => newTicker(), 3000);
     return;
   }
 
   // Get the leverage node
-  leverageElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  leverageButtonElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   // Get the last price node
   priceElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderbook"]/div[2]/div[2]/div[2]/span/div/h3/span[1]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+  // Get the leverage slider node
+  leverageSliderElement = document.querySelector("div.LeverageProgress_sliderWrapper__jwV3K > div > div.ant-slider-handle");
   // Return if either of them are not found
-  if (!leverageElement || !priceElement || !tickSize) {
+  if (!leverageButtonElement || !priceElement || !tickSize) {
     console.log('Price, leverage, or tick size elements not found! Retrying...');
     // Increment the fail count
     failCount += 1;
@@ -98,15 +100,16 @@ function newTicker() {
   
   // Attach or re-attach the observer
   observer.disconnect();
-  observer.observe(leverageElement, { characterData: true, attributes: true, childList: true, subtree: true });
+  observer.observe(leverageButtonElement, { characterData: true, attributes: true, childList: true, subtree: true });
   observer.observe(priceElement, { characterData: true, attributes: false, childList: false, subtree: true });
+  observer.observe(leverageSliderElement, { characterData: true, attributes: true, childList: true, subtree: true });
   console.log('Mutation Observer started');
 
   // Get the tick size
   console.log('Tick Size: ', tickSize);
 
-  // Hover on some other element to close the dropdown
-  leverageElement.dispatchEvent(hoverEvent);
+  // Hover on some other element to close the dropdown - doesn't work
+  leverageButtonElement.dispatchEvent(hoverEvent);
   }
 
 // Liquidation price calculation
@@ -122,8 +125,16 @@ function getLiq() {
     return; 
   }
 
-  // Get the value of the leverage slider
-  let sliderVal = parseInt(document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent, 10);
+  // Get the leverage value
+  // Use the slider first, then the button if the slider is not found
+
+  try {
+  var sliderVal = parseInt(document.querySelector("div > div.LeverageProgress_leverageWrapper__YjWN7 > div.LeverageProgress_sliderWrapper__jwV3K > div > div.ant-slider-handle").attributes['aria-valuenow'].value);
+  } catch (error) {
+    console.log('Error getting slider value: ', error);
+  }
+  
+  let buttonVal = parseInt(document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent, 10);
 
   // Get the value of the last price
   let lastPrice = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderbook"]/div[2]/div[2]/div[2]/span/div/h3/span[1]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue.textContent.trim();
@@ -139,14 +150,12 @@ function getLiq() {
     console.log('Error getting decimal places: ', error);
   }
 
-  //let decimal_places = lastPrice.toString().split(".")[1].length;
-
   // Values needed for the calculation
   const maintenance_margin_rate = 0.004;  // Hardcoded value, TODO: Get tiers
   const position_size = tickSize;  // Position size == tick size
   const quantity = 100;  // Quantity of contracts, TODO: Get from the UI
   const opening_price = lastPrice;  // USDT, opening price per contract, for this it's the last price
-  const leverage = sliderVal;  // Initial leverage multiple
+  const leverage = sliderVal || buttonVal;
 
   // Calculate Maintenance Margin
   const maintenance_margin = opening_price * quantity * position_size * maintenance_margin_rate;
@@ -169,7 +178,7 @@ function getLiq() {
 
   // Debug
   console.log('############ Testing ############', i);
-  console.log('Leverage: ', sliderVal);
+  console.log('Leverage: ', buttonVal, sliderVal);
   console.log('Last Price: ', lastPrice);
   console.log('Liquidation %: ', parseFloat(liqPcnt.toFixed(2)));
   console.log('Long Liquidation: ', long_liquidation_price);
@@ -180,11 +189,11 @@ function getLiq() {
 
 }
 
-// Sleep function for debugging
+// Sleep function for debugging -> Use sleep() 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function wait(ms) {
-  await sleep(ms); // Sleep for 2 seconds
+  await sleep(ms);
 }
