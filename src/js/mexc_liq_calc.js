@@ -11,6 +11,7 @@
 
 let failCount = 0;      // In case it doesn't work or the site doesn't load
 let i = 0;              // Debug counter
+let leverageSliderElement;  // Leverage slider element
 
 // Create observer object
 let observer = new MutationObserver(getLiq);
@@ -36,6 +37,38 @@ const waitForPage = setTimeout(() => {
   const orderFormElement = document.querySelector('#mexc-web-inspection-futures-exchange-orderForm > div.handle_handleWrapper__TQ__L > div.ant-row.ant-row-middle.handle_vouchers__ZQ55K');
   orderFormElement.appendChild(liqPrices);
   console.log('Liq prices div appended to order form')
+
+    // Global observer to watch for the addition of the slider
+  let globalObserver = new MutationObserver((mutations, observer) => {
+    for (let mutation of mutations) {
+      if (mutation.addedNodes.length) {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === 1 && node.matches('div.LeverageProgress_sliderWrapper__jwV3K')) { // Check if the node is an element and matches the leverage slider
+            console.log('Leverage slider added to the DOM');
+
+            // Now that the slider is added, observe it for changes
+            let sliderObserver = new MutationObserver(sliderMutationCallback);
+            sliderObserver.observe(node, { attributes: true });
+
+            // Optionally, disconnect the global observer if it's no longer needed
+            globalObserver.disconnect();
+          }
+        });
+      }
+    }
+  });
+
+  // Callback function for the slider observer
+  function sliderMutationCallback(mutations, observer) {
+    mutations.forEach(mutation => {
+      console.log('Slider changed:', mutation);
+      // Call newTicker to update the liquidation prices
+      newTicker();
+    });
+  }
+
+  // Start observing the entire document for the addition of the slider
+  globalObserver.observe(document.body, { childList: true, subtree: true });
 
   // Call newTicker to start the observer
   newTicker();
@@ -84,8 +117,6 @@ function newTicker() {
   leverageButtonElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderForm"]/div[2]/div[1]/section/div[2]/span', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
   // Get the last price node
   priceElement = document.evaluate('//*[@id="mexc-web-inspection-futures-exchange-orderbook"]/div[2]/div[2]/div[2]/span/div/h3/span[1]', document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-  // Get the leverage slider node
-  leverageSliderElement = document.querySelector("div.LeverageProgress_sliderWrapper__jwV3K > div > div.ant-slider-handle");
   // Return if either of them are not found
   if (!leverageButtonElement || !priceElement || !tickSize) {
     console.log('Price, leverage, or tick size elements not found! Retrying...');
@@ -102,7 +133,6 @@ function newTicker() {
   observer.disconnect();
   observer.observe(leverageButtonElement, { characterData: true, attributes: true, childList: true, subtree: true });
   observer.observe(priceElement, { characterData: true, attributes: false, childList: false, subtree: true });
-  observer.observe(leverageSliderElement, { characterData: true, attributes: true, childList: true, subtree: true });
   console.log('Mutation Observer started');
 
   // Get the tick size
@@ -143,10 +173,13 @@ function getLiq() {
   lastPrice = parseFloat(lastPrice);
 
   // Get the number of digits after the decimal
+  let decimal_places = 0;
   try {
-    var decimal_places = lastPrice.toString().split(".")[1].length;
-  }
-  catch (error) {
+    const decimalIndex = lastPrice.toString().indexOf(".");
+    if (decimalIndex !== -1) {
+      decimal_places = lastPrice.toString().split(".")[1].length;
+    }
+  } catch (error) {
     console.log('Error getting decimal places: ', error);
   }
 
