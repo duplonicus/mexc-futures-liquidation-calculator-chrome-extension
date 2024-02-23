@@ -3,3 +3,4 @@ build
 secrets.*.js
 .DS_Store
 mexc.htmls
+yarn-error.log
