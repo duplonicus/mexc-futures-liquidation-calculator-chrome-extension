@@ -1,6 +1,4 @@
-node_modules
 build
-secrets.*.js
-.DS_Store
-mexc.htmls
+node_modules
+mexc.html
 yarn-error.log
